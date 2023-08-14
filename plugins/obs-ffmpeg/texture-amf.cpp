@@ -504,6 +504,39 @@ static inline int64_t convert_to_obs_ts(amf_base *enc, int64_t ts)
 	return ts * (int64_t)enc->fps_den / amf_timebase;
 }
 
+static inline const char *
+convert_amf_memory_type_to_string(AMF_MEMORY_TYPE type)
+{
+	switch (type) {
+	case AMF_MEMORY_UNKNOWN:
+		return "Unknown";
+	case AMF_MEMORY_HOST:
+		return "Host";
+	case AMF_MEMORY_DX9:
+		return "DX9";
+	case AMF_MEMORY_DX11:
+		return "DX11";
+	case AMF_MEMORY_OPENCL:
+		return "OpenCL";
+	case AMF_MEMORY_OPENGL:
+		return "OpenGL";
+	case AMF_MEMORY_XV:
+		return "XV";
+	case AMF_MEMORY_GRALLOC:
+		return "Gralloc";
+	case AMF_MEMORY_COMPUTE_FOR_DX9:
+		return "Compute For DX9";
+	case AMF_MEMORY_COMPUTE_FOR_DX11:
+		return "Compute For DX11";
+	case AMF_MEMORY_VULKAN:
+		return "Vulkan";
+	case AMF_MEMORY_DX12:
+		return "DX12";
+	default:
+		return "Invalid";
+	}
+}
+
 static void convert_to_encoder_packet(amf_base *enc, AMFDataPtr &data,
 				      encoder_packet *packet)
 {
@@ -1160,36 +1193,17 @@ static void check_texture_encode_capability(obs_encoder_t *encoder,
 
 #include "texture-amf-opts.hpp"
 
+/* These are initial recommended settings that may be lowered later
+ * once we know more info such as the resolution and frame rate.
+ */
 static void amf_avc_defaults(obs_data_t *settings)
 {
-	// These are initial recommended settings that may be lowered later
-	// once we know more info such as the resolution and frame rate.
 	obs_data_set_default_string(settings, "rate_control", "CBR");
 	obs_data_set_default_int(settings, "bitrate", 2500);
 	obs_data_set_default_int(settings, "cqp", 20);
 	obs_data_set_default_string(settings, "preset", "quality");
 	obs_data_set_default_string(settings, "profile", "high");
 	obs_data_set_default_int(settings, "bf", 2);
-}
-
-static void amf_hevc_defaults(obs_data_t *settings)
-{
-	// These are initial recommended settings that may be lowered later
-	// once we know more info such as the resolution and frame rate.
-	obs_data_set_default_string(settings, "rate_control", "VBR");
-	obs_data_set_default_int(settings, "bitrate", 2500);
-	obs_data_set_default_int(settings, "cqp", 20);
-	obs_data_set_default_string(settings, "preset", "quality");
-}
-
-static void amf_av1_defaults(obs_data_t *settings)
-{
-	// These are initial recommended settings that may be lowered later
-	// once we know more info such as the resolution and frame rate.
-	obs_data_set_default_int(settings, "bitrate", 2500);
-	obs_data_set_default_int(settings, "cqp", 20);
-	obs_data_set_default_string(settings, "rate_control", "VBR");
-	obs_data_set_default_string(settings, "preset", "highQuality");
 }
 
 static bool rate_control_modified(obs_properties_t *ppts, obs_property_t *p,
@@ -1265,6 +1279,11 @@ static obs_properties_t *amf_properties_internal(amf_codec_type codec)
 			add_profile("baseline");
 #undef add_profile
 	}
+
+	p = obs_properties_add_bool(props, "pre_analysis",
+				    obs_module_text("AMF.PreAnalysis"));
+	obs_property_set_long_description(
+		p, obs_module_text("AMF.PreAnalysis.ToolTip"));
 
 	if (amf_codec_type::AVC == codec) {
 		obs_properties_add_int(props, "bf", obs_module_text("BFrames"),
@@ -1423,7 +1442,6 @@ static inline void adjust_recommended_avc_defaults(amf_base *enc,
 {
 	int64_t framerate = enc->fps_num / enc->fps_den;
 	if ((enc->cx * enc->cy > 1920 * 1088) || (framerate > 60)) {
-
 		// Recommended base defaults
 		obs_data_set_default_int(settings, "bitrate", 2500);
 		obs_data_set_default_int(settings, "cqp", 20);
@@ -1450,6 +1468,7 @@ static bool amf_avc_init(void *data, obs_data_t *settings)
 	const char *profile = obs_data_get_string(settings, "profile");
 	const char *rc_str = obs_data_get_string(settings, "rate_control");
 	int64_t bf = obs_data_get_int(settings, "bf");
+	bool pa_enabled = obs_data_get_bool(settings, "pre_analysis");
 
 	if (enc->bframes_supported) {
 		set_avc_property(enc, MAX_CONSECUTIVE_BPICTURES, bf);
@@ -1459,7 +1478,7 @@ static bool amf_avc_init(void *data, obs_data_t *settings)
 		 * as those with high motion. This only takes effect if
 		 * Pre-Analysis is enabled.
 		 */
-		if (bf > 0) {
+		if (bf > 0 && pa_enabled == true) {
 			set_avc_property(enc, ADAPTIVE_MINIGOP, true);
 		}
 
@@ -1508,14 +1527,14 @@ static bool amf_avc_init(void *data, obs_data_t *settings)
 	if (!ffmpeg_opts || !*ffmpeg_opts)
 		ffmpeg_opts = "(none)";
 
-	info("Settings:\n"
+	info("settings:\n"
 	     "\trate_control:           %s\n"
 	     "\tbitrate:                %d\n"
 	     "\tcqp:                    %d\n"
 	     "\tkeyint:                 %d\n"
 	     "\tpreset:                 %s\n"
 	     "\tprofile:                %s\n"
-	     "\tmax b-frames:           %d\n"
+	     "\tb-frames:               %d\n"
 	     "\twidth:                  %d\n"
 	     "\theight:                 %d\n"
 	     "\toverriding params:      %s",
@@ -1815,7 +1834,6 @@ static inline void adjust_recommended_hevc_defaults(amf_base *enc,
 	const bool is10bit = enc->amf_format == AMF_SURFACE_P010;
 	const int64_t framerate = enc->fps_num / enc->fps_den;
 	if ((enc->cx * enc->cy > 1920 * 1088) || is10bit || (framerate > 60)) {
-
 		// Recommended base defaults
 		obs_data_set_default_int(settings, "bitrate", 2500);
 		obs_data_set_default_int(settings, "cqp", 20);
@@ -1870,7 +1888,7 @@ static bool amf_hevc_init(void *data, obs_data_t *settings)
 	if (!ffmpeg_opts || !*ffmpeg_opts)
 		ffmpeg_opts = "(none)";
 
-	info("Settings:\n"
+	info("settings:\n"
 	     "\trate_control:       %s\n"
 	     "\tbitrate:            %d\n"
 	     "\tcqp:                %d\n"
@@ -2230,7 +2248,6 @@ static inline void adjust_recommended_av1_defaults(amf_base *enc,
 	const bool is10bit = enc->amf_format == AMF_SURFACE_P010;
 	const int64_t framerate = enc->fps_num / enc->fps_den;
 	if ((enc->cx * enc->cy > 1920 * 1088) || is10bit || (framerate > 60)) {
-
 		// Recommended base defaults
 		obs_data_set_default_int(settings, "bitrate", 2500);
 		obs_data_set_default_int(settings, "cqp", 20);
@@ -2279,7 +2296,7 @@ static bool amf_av1_init(void *data, obs_data_t *settings)
 	if (!ffmpeg_opts || !*ffmpeg_opts)
 		ffmpeg_opts = "(none)";
 
-	info("Settings:\n"
+	info("settings:\n"
 	     "\trate_control:          %s\n"
 	     "\tbitrate:               %d\n"
 	     "\tcqp:                   %d\n"
@@ -2290,7 +2307,7 @@ static bool amf_av1_init(void *data, obs_data_t *settings)
 	     "\theight:                %d\n"
 	     "\tscreen content tools:  %s\n"
 	     "\tpalette mode:          %s\n"
-	     "\toverriding params:  %s",
+	     "\toverriding params:     %s",
 	     rc_str, bitrate, qp, gop_size, preset, profile, enc->cx, enc->cy,
 	     "true", "true", ffmpeg_opts);
 
