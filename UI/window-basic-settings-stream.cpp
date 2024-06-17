@@ -112,6 +112,8 @@ void OBSBasicSettings::LoadStream1Settings()
 {
 	bool ignoreRecommended =
 		config_get_bool(main->Config(), "Stream1", "IgnoreRecommended");
+	int simulcastTotalLayers = config_get_int(main->Config(), "Stream1",
+						  "SimulcastTotalLayers");
 
 	obs_service_t *service_obj = main->GetService();
 	const char *type = obs_service_get_type(service_obj);
@@ -224,10 +226,13 @@ void OBSBasicSettings::LoadStream1Settings()
 	if (use_custom_server)
 		ui->serviceCustomServer->setText(server);
 
-	if (is_whip)
+	if (is_whip) {
 		ui->key->setText(bearer_token);
-	else
+		ui->simulcastGroupBox->show();
+	} else {
 		ui->key->setText(key);
+		ui->simulcastGroupBox->hide();
+	}
 
 	ServiceChanged(true);
 
@@ -241,6 +246,7 @@ void OBSBasicSettings::LoadStream1Settings()
 	ui->streamPage->setEnabled(!streamActive);
 
 	ui->ignoreRecommended->setChecked(ignoreRecommended);
+	ui->simulcastTotalLayers->setValue(simulcastTotalLayers);
 
 	loading = false;
 
@@ -365,6 +371,11 @@ void OBSBasicSettings::SaveStream1Settings()
 
 	SaveCheckBox(ui->ignoreRecommended, "Stream1", "IgnoreRecommended");
 
+	auto oldSimulcastTotalLayers = config_get_int(main->Config(), "Stream1",
+						      "SimulcastTotalLayers");
+	SaveSpinBox(ui->simulcastTotalLayers, "Stream1",
+		    "SimulcastTotalLayers");
+
 	auto oldMultitrackVideoSetting = config_get_bool(
 		main->Config(), "Stream1", "EnableMultitrackVideo");
 
@@ -404,7 +415,9 @@ void OBSBasicSettings::SaveStream1Settings()
 	SaveText(ui->multitrackVideoConfigOverride, "Stream1",
 		 "MultitrackVideoConfigOverride");
 
-	if (oldMultitrackVideoSetting != ui->enableMultitrackVideo->isChecked())
+	if (oldMultitrackVideoSetting !=
+		    ui->enableMultitrackVideo->isChecked() ||
+	    oldSimulcastTotalLayers != ui->simulcastTotalLayers->value())
 		main->ResetOutputs();
 
 	SwapMultiTrack(QT_TO_UTF8(protocol));
@@ -660,6 +673,12 @@ void OBSBasicSettings::on_service_currentIndexChanged(int idx)
 			ui->streamSingleTracks);
 	} else {
 		SwapMultiTrack(QT_TO_UTF8(protocol));
+	}
+
+	if (IsWHIP()) {
+		ui->simulcastGroupBox->show();
+	} else {
+		ui->simulcastGroupBox->hide();
 	}
 }
 
