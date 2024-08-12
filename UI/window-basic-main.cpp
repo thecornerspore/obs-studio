@@ -11062,10 +11062,11 @@ OBSBasic::GetAdditionalMultitrackVideoViews()
 void OBSBasic::MultitrackVideoRegister(const char *name,
 				       multitrack_video_start_cb start_video,
 				       multitrack_video_stop_cb stop_video,
-				       void *param)
+				       void *private_data)
 {
 	MultitrackVideoUnregister(name);
-	multitrackVideoViews.push_back({name, start_video, stop_video, param});
+	multitrackVideoViews.push_back(
+		{name, start_video, stop_video, private_data});
 }
 
 void OBSBasic::MultitrackVideoUnregister(const char *name)

@@ -171,7 +171,7 @@ struct obs_frontend_callbacks {
 
 	virtual void obs_frontend_multitrack_video_register(
 		const char *name, multitrack_video_start_cb start_video,
-		multitrack_video_stop_cb stop_video, void *param) = 0;
+		multitrack_video_stop_cb stop_video, void *private_data) = 0;
 	virtual void
 	obs_frontend_multitrack_video_unregister(const char *name) = 0;
 };
