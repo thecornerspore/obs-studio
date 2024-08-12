@@ -812,8 +812,9 @@ struct OBSStudioAPI : obs_frontend_callbacks {
 	}
 
 	void obs_frontend_multitrack_video_register(
-		const char *name, multitrack_video_start_cb start_video,
-		multitrack_video_stop_cb stop_video,
+		const char *name,
+		obs_frontend_multitrack_video_start_cb start_video,
+		obs_frontend_multitrack_video_stop_cb stop_video,
 		void *private_data) override
 	{
 		main->MultitrackVideoRegister(name, start_video, stop_video,
