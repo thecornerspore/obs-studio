@@ -253,8 +253,10 @@ EXPORT void obs_frontend_add_undo_redo_action(
 	const char *name, const undo_redo_cb undo, const undo_redo_cb redo,
 	const char *undo_data, const char *redo_data, bool repeatable);
 
-typedef video_t *(*obs_frontend_multitrack_video_start_cb)(void *private_data);
-typedef void (*obs_frontend_multitrack_video_stop_cb)(video_t *video,
+typedef video_t *(*obs_frontend_multitrack_video_start_cb)(const char *name,
+							   void *private_data);
+typedef void (*obs_frontend_multitrack_video_stop_cb)(const char *name,
+						      video_t *video,
 						      void *private_data);
 EXPORT void obs_frontend_multitrack_video_register(
 	const char *name, obs_frontend_multitrack_video_start_cb start_video,
