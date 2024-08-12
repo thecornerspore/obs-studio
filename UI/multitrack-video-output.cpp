@@ -425,7 +425,8 @@ void MultitrackVideoOutput::PrepareStreaming(
 	auto extra_views = std::make_shared<ExtraViewsGuard>();
 	for (auto &video_output :
 	     OBSBasic::Get()->GetAdditionalMultitrackVideoViews()) {
-		video_t *video = video_output.start_video(video_output.param);
+		video_t *video = video_output.start_video(
+			video_output.name.c_str(), video_output.param);
 		if (!video)
 			continue;
 		extra_views->views_[video_output.name] = video;
@@ -1080,7 +1081,7 @@ MultitrackVideoOutput::ExtraViewsGuard::~ExtraViewsGuard()
 			if (v.name != view.first)
 				continue;
 
-			v.stop_video(view.second, v.param);
+			v.stop_video(v.name.c_str(), view.second, v.param);
 		}
 	}
 }
