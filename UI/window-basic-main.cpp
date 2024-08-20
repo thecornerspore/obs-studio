@@ -10657,7 +10657,7 @@ void OBSBasic::RepairCustomExtraDockName()
 
 OBSBasic *OBSBasic::Get()
 {
-	return reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+	return qobject_cast<OBSBasic *>(App()->GetMainWindow());
 }
 
 bool OBSBasic::StreamingActive()
