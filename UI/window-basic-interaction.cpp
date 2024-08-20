@@ -35,7 +35,7 @@ using namespace std;
 
 OBSBasicInteraction::OBSBasicInteraction(QWidget *parent, OBSSource source_)
 	: QDialog(parent),
-	  main(qobject_cast<OBSBasic *>(parent)),
+	  main(OBSBasic::Get()),
 	  ui(new Ui::OBSBasicInteraction),
 	  source(source_),
 	  removedSignal(obs_source_get_signal_handler(source), "remove",

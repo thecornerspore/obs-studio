@@ -1027,7 +1027,7 @@ AutoConfig::AutoConfig(QWidget *parent) : QWizard(parent)
 	proc_handler_call(ph, "twitch_ingests_refresh", &cd);
 	calldata_free(&cd);
 
-	OBSBasic *main = reinterpret_cast<OBSBasic *>(parent);
+	OBSBasic *main = OBSBasic::Get();
 	main->EnableOutputs(false);
 
 	installEventFilter(CreateShortcutFilter());
@@ -1158,7 +1158,7 @@ AutoConfig::AutoConfig(QWidget *parent) : QWizard(parent)
 
 AutoConfig::~AutoConfig()
 {
-	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+	OBSBasic *main = OBSBasic::Get();
 	main->EnableOutputs(true);
 	EnableThreadedMessageBoxes(false);
 }
@@ -1249,7 +1249,7 @@ inline const char *AutoConfig::GetEncoderId(Encoder enc)
 
 void AutoConfig::SaveStreamSettings()
 {
-	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+	OBSBasic *main = OBSBasic::Get();
 
 	/* ---------------------------------- */
 	/* save service                       */
@@ -1326,7 +1326,7 @@ void AutoConfig::SaveStreamSettings()
 
 void AutoConfig::SaveSettings()
 {
-	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+	OBSBasic *main = OBSBasic::Get();
 
 	if (recordingEncoder != Encoder::Stream)
 		config_set_string(main->Config(), "SimpleOutput", "RecEncoder",

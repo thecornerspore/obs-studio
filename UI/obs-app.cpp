@@ -1512,7 +1512,7 @@ bool OBSApp::notify(QObject *receiver, QEvent *e)
 	if (windowType == Qt::WindowType::Dialog ||
 	    windowType == Qt::WindowType::Window ||
 	    windowType == Qt::WindowType::Tool) {
-		OBSBasic *main = reinterpret_cast<OBSBasic *>(GetMainWindow());
+		OBSBasic *main = OBSBasic::Get();
 		if (main)
 			main->SetDisplayAffinity(window);
 	}
@@ -1798,7 +1798,7 @@ string GetFormatExt(const char *container)
 string GetOutputFilename(const char *path, const char *container, bool noSpace,
 			 bool overwrite, const char *format)
 {
-	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+	OBSBasic *main = OBSBasic::Get();
 
 	os_dir_t *dir = path && path[0] ? os_opendir(path) : nullptr;
 
@@ -2563,7 +2563,7 @@ void OBSApp::ProcessSigInt(void)
 	char tmp;
 	recv(sigintFd[1], &tmp, sizeof(tmp), 0);
 
-	OBSBasic *main = reinterpret_cast<OBSBasic *>(GetMainWindow());
+	OBSBasic *main = OBSBasic::Get();
 	if (main)
 		main->close();
 #endif

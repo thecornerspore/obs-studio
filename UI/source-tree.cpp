@@ -24,7 +24,7 @@
 
 static inline OBSScene GetCurrentScene()
 {
-	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+	OBSBasic *main = OBSBasic::Get();
 	return main->GetCurrentScene();
 }
 
@@ -56,7 +56,7 @@ SourceTreeItem::SourceTreeItem(SourceTree *tree_, OBSSceneItem sceneitem_)
 		setStyleSheet("background: none");
 	}
 
-	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+	OBSBasic *main = OBSBasic::Get();
 	const char *id = obs_source_get_id(source);
 
 	bool sourceVisible = obs_sceneitem_visible(sceneitem);
@@ -312,8 +312,7 @@ void SourceTreeItem::mouseDoubleClickEvent(QMouseEvent *event)
 		expand->setChecked(!expand->isChecked());
 	} else {
 		obs_source_t *source = obs_sceneitem_get_source(sceneitem);
-		OBSBasic *main =
-			reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+		OBSBasic *main = OBSBasic::Get();
 		if (obs_source_configurable(source)) {
 			main->CreatePropertiesWindow(source);
 		}
@@ -383,7 +382,7 @@ void SourceTreeItem::ExitEditModeInternal(bool save)
 		return;
 	}
 
-	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+	OBSBasic *main = OBSBasic::Get();
 	OBSScene scene = main->GetCurrentScene();
 
 	newName = QT_TO_UTF8(editor->text());
@@ -1611,7 +1610,7 @@ bool SourceTree::GroupedItemsSelected() const
 
 void SourceTree::Remove(OBSSceneItem item, OBSScene scene)
 {
-	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+	OBSBasic *main = OBSBasic::Get();
 	GetStm()->Remove(item);
 	main->SaveProject();
 

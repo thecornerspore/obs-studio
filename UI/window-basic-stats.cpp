@@ -200,7 +200,7 @@ OBSBasicStats::OBSBasicStats(QWidget *parent, bool closable)
 			 &OBSBasicStats::RecordingTimeLeft);
 	recTimeLeft.setInterval(REC_TIME_LEFT_INTERVAL);
 
-	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+	OBSBasic *main = OBSBasic::Get();
 
 	const char *geometry =
 		config_get_string(main->Config(), "Stats", "geometry");
@@ -227,7 +227,7 @@ OBSBasicStats::OBSBasicStats(QWidget *parent, bool closable)
 
 void OBSBasicStats::closeEvent(QCloseEvent *event)
 {
-	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+	OBSBasic *main = OBSBasic::Get();
 	if (isVisible()) {
 		config_set_string(main->Config(), "Stats", "geometry",
 				  saveGeometry().toBase64().constData());
@@ -282,7 +282,7 @@ void OBSBasicStats::InitializeValues()
 
 void OBSBasicStats::Update()
 {
-	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+	OBSBasic *main = OBSBasic::Get();
 
 	/* TODO: Un-hardcode */
 

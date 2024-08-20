@@ -354,7 +354,7 @@ void RestrictResetBitrates(initializer_list<QComboBox *> boxes, int maxbitrate);
 
 OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 	: QDialog(parent),
-	  main(qobject_cast<OBSBasic *>(parent)),
+	  main(OBSBasic::Get()),
 	  ui(new Ui::OBSBasicSettings)
 {
 	string path;
