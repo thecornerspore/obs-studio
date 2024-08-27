@@ -105,6 +105,7 @@ private:
 
 	bool enableHotkeysInFocus = true;
 	bool enableHotkeysOutOfFocus = true;
+	bool hotkeysDisabled = false;
 
 	std::deque<obs_frontend_translate_ui_cb> translatorHooks;
 
@@ -226,6 +227,9 @@ public:
 #ifndef _WIN32
 	static void SigIntSignalHandler(int);
 #endif
+
+private slots:
+	void WidgetFocusChanged(QWidget *old, QWidget *now);
 
 public slots:
 	void Exec(VoidFunc func);
