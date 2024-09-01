@@ -856,7 +856,7 @@ VolumeMeter::VolumeMeter(QWidget *parent, obs_volmeter_t *obs_volmeter,
 	minimumLevel = -60.0;                    // -60 dB
 	warningLevel = -20.0;                    // -20 dB
 	errorLevel = -9.0;                       //  -9 dB
-	clipLevel = -0.5;                        //  -0.5 dB
+	clipLevel = 0.0;                         //   0 dB
 	minimumInputLevel = -50.0;               // -50 dB
 	peakDecayRate = 11.76;                   //  20 dB / 1.7 sec
 	magnitudeIntegrationTime = 0.3;          //  99% in 300 ms
