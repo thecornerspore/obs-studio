@@ -143,6 +143,13 @@ private:
 	std::unique_ptr<Ui::ColorSelect> ui;
 };
 
+struct MultitrackVideoViewInfo {
+	std::string name;
+	obs_frontend_multitrack_video_start_cb start_video = nullptr;
+	obs_frontend_multitrack_video_stop_cb stop_video = nullptr;
+	void *param = nullptr;
+};
+
 class OBSBasic : public OBSMainWindow {
 	Q_OBJECT
 	Q_PROPERTY(QIcon imageIcon READ GetImageIcon WRITE SetImageIcon
@@ -230,6 +237,8 @@ private:
 	std::vector<VolControl *> volumes;
 
 	std::vector<OBSSignal> signalHandlers;
+
+	std::vector<MultitrackVideoViewInfo> multitrackVideoViews;
 
 	QList<QPointer<QDockWidget>> oldExtraDocks;
 	QStringList oldExtraDockNames;
@@ -907,6 +916,13 @@ private:
 
 	float dpi = 1.0;
 
+	void MultitrackVideoRegister(
+		const char *name,
+		obs_frontend_multitrack_video_start_cb start_video,
+		obs_frontend_multitrack_video_stop_cb stop_video,
+		void *private_data);
+	void MultitrackVideoUnregister(const char *name);
+
 public:
 	OBSSource GetProgramSource();
 	OBSScene GetCurrentScene();
@@ -1056,6 +1072,9 @@ public:
 
 	QColor GetSelectionColor() const;
 	inline bool Closing() { return closing; }
+
+	const std::vector<MultitrackVideoViewInfo> &
+	GetAdditionalMultitrackVideoViews();
 
 protected:
 	virtual void closeEvent(QCloseEvent *event) override;
