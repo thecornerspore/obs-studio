@@ -112,7 +112,7 @@ void OBSBasicStatusBar::Activate()
 
 void OBSBasicStatusBar::Deactivate()
 {
-	OBSBasic *main = qobject_cast<OBSBasic *>(parent());
+	OBSBasic *main = OBSBasic::Get();
 	if (!main)
 		return;
 
@@ -231,7 +231,7 @@ void OBSBasicStatusBar::UpdateBandwidth()
 
 void OBSBasicStatusBar::UpdateCPUUsage()
 {
-	OBSBasic *main = qobject_cast<OBSBasic *>(parent());
+	OBSBasic *main = OBSBasic::Get();
 	if (!main)
 		return;
 
@@ -423,7 +423,7 @@ void OBSBasicStatusBar::OBSOutputReconnectSuccess(void *data, calldata_t *)
 
 void OBSBasicStatusBar::Reconnect(int seconds)
 {
-	OBSBasic *main = qobject_cast<OBSBasic *>(parent());
+	OBSBasic *main = OBSBasic::Get();
 
 	if (!retries)
 		main->SysTrayNotify(
@@ -457,7 +457,7 @@ void OBSBasicStatusBar::ReconnectClear()
 
 void OBSBasicStatusBar::ReconnectSuccess()
 {
-	OBSBasic *main = qobject_cast<OBSBasic *>(parent());
+	OBSBasic *main = OBSBasic::Get();
 
 	QString msg = QTStr("Basic.StatusBar.ReconnectSuccessful");
 	showMessage(msg, 4000);
@@ -478,7 +478,7 @@ void OBSBasicStatusBar::ReconnectSuccess()
 
 void OBSBasicStatusBar::UpdateStatusBar()
 {
-	OBSBasic *main = qobject_cast<OBSBasic *>(parent());
+	OBSBasic *main = OBSBasic::Get();
 
 	UpdateBandwidth();
 
@@ -513,7 +513,7 @@ void OBSBasicStatusBar::UpdateStatusBar()
 
 void OBSBasicStatusBar::StreamDelayStarting(int sec)
 {
-	OBSBasic *main = qobject_cast<OBSBasic *>(parent());
+	OBSBasic *main = OBSBasic::Get();
 	if (!main || !main->outputHandler)
 		return;
 

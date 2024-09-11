@@ -231,7 +231,7 @@ void OBSBasic::RefreshSceneCollections()
 
 	ui->actionRemoveSceneCollection->setEnabled(count > 1);
 
-	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+	OBSBasic *main = OBSBasic::Get();
 
 	main->ui->actionPasteFilters->setEnabled(false);
 	main->ui->actionPasteRef->setEnabled(false);
