@@ -801,7 +801,6 @@ private slots:
 
 	void HideAudioControl();
 	void UnhideAllAudioControls();
-	void ToggleHideMixer();
 
 	void MixerRenameSource();
 
@@ -1057,6 +1056,9 @@ public:
 	QColor GetSelectionColor() const;
 	inline bool Closing() { return closing; }
 
+	bool SourceMixerHidden(OBSSource source);
+	void SetSourceMixerHidden(OBSSource source, bool hidden);
+
 protected:
 	virtual void closeEvent(QCloseEvent *event) override;
 	virtual bool nativeEvent(const QByteArray &eventType, void *message,
@@ -1310,6 +1312,9 @@ signals:
 	/* Preview signals */
 	void PreviewXScrollBarMoved(int value);
 	void PreviewYScrollBarMoved(int value);
+
+	/* Source mixer visibility signal */
+	void SourceMixerVisiblityChanged(OBSSource source, bool hidden);
 
 private:
 	std::unique_ptr<Ui::OBSBasic> ui;
