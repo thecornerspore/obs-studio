@@ -343,7 +343,6 @@ private:
 
 	ConfigFile activeConfiguration;
 
-	std::vector<SavedProjectorInfo *> savedProjectorsArray;
 	std::vector<OBSProjector *> projectors;
 
 	QPointer<QWidget> stats;
@@ -1004,8 +1003,6 @@ public:
 
 	void SystemTrayInit();
 	void SystemTray(bool firstStarted);
-
-	void OpenSavedProjectors();
 
 	void CreateInteractionWindow(obs_source_t *source);
 	void CreatePropertiesWindow(obs_source_t *source);
