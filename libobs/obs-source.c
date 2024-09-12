@@ -1600,6 +1600,18 @@ static void source_output_audio_data(obs_source_t *source,
 		}
 	}
 
+	if (source->async_compensation && source->resampler) {
+		uint64_t ts_buffered = in.timestamp;
+		uint64_t ts_data = data->timestamp - source->resample_offset;
+		int64_t error = (int64_t)(ts_buffered - ts_data);
+		if (push_back && INT32_MIN <= error && error <= INT32_MAX)
+			audio_resampler_set_compensation_error(
+				source->resampler, (int)error);
+		else
+			audio_resampler_set_compensation_error(
+				source->resampler, 0);
+	}
+
 	sync_offset = source->sync_offset;
 	in.timestamp += sync_offset;
 	in.timestamp -= source->resample_offset;
@@ -4074,6 +4086,7 @@ static inline void reset_resampler(obs_source_t *source,
 	source->sample_info.format = audio->format;
 	source->sample_info.samples_per_sec = audio->samples_per_sec;
 	source->sample_info.speakers = audio->speakers;
+	source->last_async_compensation = source->async_compensation;
 
 	audio_resampler_destroy(source->resampler);
 	source->resampler = NULL;
@@ -4081,7 +4094,8 @@ static inline void reset_resampler(obs_source_t *source,
 
 	if (source->sample_info.samples_per_sec == obs_info->samples_per_sec &&
 	    source->sample_info.format == obs_info->format &&
-	    source->sample_info.speakers == obs_info->speakers) {
+	    source->sample_info.speakers == obs_info->speakers &&
+	    !source->async_compensation) {
 		source->audio_failed = false;
 		return;
 	}
@@ -4180,7 +4194,8 @@ static void process_audio(obs_source_t *source,
 
 	if (source->sample_info.samples_per_sec != audio->samples_per_sec ||
 	    source->sample_info.format != audio->format ||
-	    source->sample_info.speakers != audio->speakers)
+	    source->sample_info.speakers != audio->speakers ||
+	    source->last_async_compensation != source->async_compensation)
 		reset_resampler(source, audio);
 
 	if (source->audio_failed)
@@ -5942,6 +5957,21 @@ bool obs_source_async_unbuffered(const obs_source_t *source)
 {
 	return obs_source_valid(source, "obs_source_async_unbuffered")
 		       ? source->async_unbuffered
+		       : false;
+}
+
+void obs_source_set_async_compensation(obs_source_t *source, bool compensate)
+{
+	if (!obs_source_valid(source, "obs_source_set_async_compensation"))
+		return;
+
+	source->async_compensation = compensate;
+}
+
+bool obs_source_async_compensation(const obs_source_t *source)
+{
+	return obs_source_valid(source, "obs_source_async_compensation")
+		       ? source->async_compensation
 		       : false;
 }
 
