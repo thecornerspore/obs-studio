@@ -26,6 +26,7 @@
 
 #ifdef BROWSER_AVAILABLE
 #include "window-dock-browser.hpp"
+#include <QTimerEvent>
 #endif
 
 using namespace json11;
@@ -55,6 +56,14 @@ static inline void OpenBrowser(const QString auth_uri)
 	QDesktopServices::openUrl(url);
 }
 
+static void DeleteCookies()
+{
+	if (panel_cookies) {
+		panel_cookies->DeleteCookies("youtube.com", "");
+		panel_cookies->DeleteCookies("google.com", "");
+	}
+}
+
 void RegisterYoutubeAuth()
 {
 	for (auto &service : youtubeServices) {
@@ -64,7 +73,7 @@ void RegisterYoutubeAuth()
 				return std::make_shared<YoutubeApiWrappers>(
 					service);
 			},
-			YoutubeAuth::Login, []() { return; });
+			YoutubeAuth::Login, DeleteCookies);
 	}
 }
 
@@ -130,14 +139,6 @@ bool YoutubeAuth::LoadInternal()
 	return implicit ? !token.empty() : !refresh_token.empty();
 }
 
-#ifdef BROWSER_AVAILABLE
-static const char *ytchat_script = "\
-const obsCSS = document.createElement('style');\
-obsCSS.innerHTML = \"#panel-pages.yt-live-chat-renderer {display: none;}\
-yt-live-chat-viewer-engagement-message-renderer {display: none;}\";\
-document.querySelector('head').appendChild(obsCSS);";
-#endif
-
 void YoutubeAuth::LoadUI()
 {
 	if (uiLoaded)
@@ -163,7 +164,6 @@ void YoutubeAuth::LoadUI()
 
 	browser = cef->create_widget(chat, YOUTUBE_CHAT_PLACEHOLDER_URL,
 				     panel_cookies);
-	browser->setStartupScript(ytchat_script);
 
 	chat->SetWidget(browser);
 	main->AddDockWidget(chat, Qt::RightDockWidgetArea);
@@ -350,6 +350,38 @@ std::shared_ptr<Auth> YoutubeAuth::Login(QWidget *owner,
 }
 
 #ifdef BROWSER_AVAILABLE
+void YoutubeChatDock::timerEvent(QTimerEvent *event)
+{
+	if (event->timerId() != awaitLoginTimer)
+		return;
+
+	QPointer<YoutubeChatDock> this_ = this;
+	auto cb = [this_](bool currentlyLoggedIn) {
+		bool previouslyLoggedIn = this_->isLoggedIn;
+		this_->isLoggedIn = currentlyLoggedIn;
+		bool loginStateChanged =
+			(currentlyLoggedIn && !previouslyLoggedIn) ||
+			(!currentlyLoggedIn && previouslyLoggedIn);
+		if (loginStateChanged) {
+			QMetaObject::invokeMethod(
+				this_, "EnableChatInput", Qt::QueuedConnection,
+				Q_ARG(bool, !currentlyLoggedIn));
+			this_->cefWidget->reloadPage();
+			OBSBasic *main = OBSBasic::Get();
+			if (main->GetYouTubeAppDock() != nullptr) {
+				QMetaObject::invokeMethod(
+					main->GetYouTubeAppDock(),
+					"SettingsUpdated", Qt::QueuedConnection,
+					Q_ARG(bool, !currentlyLoggedIn));
+			}
+		}
+	};
+	if (panel_cookies) {
+		panel_cookies->CheckForCookie("https://www.youtube.com", "SID",
+					      cb);
+	}
+}
+
 YoutubeChatDock::YoutubeChatDock(const QString &title) : BrowserDock(title)
 {
 	lineEdit = new LineEditAutoResize();
@@ -368,6 +400,9 @@ YoutubeChatDock::YoutubeChatDock(const QString &title) : BrowserDock(title)
 			 &YoutubeChatDock::SendChatMessage);
 	QWidget::connect(sendButton, &QPushButton::pressed, this,
 			 &YoutubeChatDock::SendChatMessage);
+
+	// Check youtube.com login status periodically
+	awaitLoginTimer = startTimer(1000);
 }
 
 void YoutubeChatDock::SetWidget(QCefWidget *widget_)
@@ -425,9 +460,10 @@ void YoutubeChatDock::ShowErrorMessage(const QString &error)
 			     QTStr("YouTube.Chat.Error.Text").arg(error));
 }
 
-void YoutubeChatDock::EnableChatInput()
+void YoutubeChatDock::EnableChatInput(bool visible)
 {
-	lineEdit->setVisible(true);
-	sendButton->setVisible(true);
+	bool setVisible = visible && !isLoggedIn;
+	lineEdit->setVisible(setVisible);
+	sendButton->setVisible(setVisible);
 }
 #endif
