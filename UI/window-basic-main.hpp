@@ -685,6 +685,8 @@ private:
 
 	bool restartingVCam = false;
 
+	void UpdateZoomControls();
+
 public slots:
 	void DeferSaveBegin();
 	void DeferSaveEnd();
@@ -820,6 +822,13 @@ private slots:
 
 	void on_previewXScrollBar_valueChanged(int value);
 	void on_previewYScrollBar_valueChanged(int value);
+	void on_actionPreviewResetZoom_triggered();
+	void on_actionPreviewZoomOut_triggered();
+	void on_actionPreviewZoomIn_triggered();
+	void on_previewZoomOutButton_clicked();
+	void on_previewZoomInButton_clicked();
+	void on_preview_ZoomIsMinimum();
+	void on_preview_ZoomIsMaximum();
 
 	void PreviewScalingModeChanged(int value);
 
@@ -1310,6 +1319,9 @@ signals:
 	/* Preview signals */
 	void PreviewXScrollBarMoved(int value);
 	void PreviewYScrollBarMoved(int value);
+	void PreviewResetZoom();
+	void PreviewZoomOut();
+	void PreviewZoomIn();
 
 private:
 	std::unique_ptr<Ui::OBSBasic> ui;

@@ -46,6 +46,11 @@ void OBSBasicPreview::Init()
 		&OBSBasicPreview::XScrollBarMoved);
 	connect(main, &OBSBasic::PreviewYScrollBarMoved, this,
 		&OBSBasicPreview::YScrollBarMoved);
+	connect(main, &OBSBasic::PreviewZoomIn, this, &OBSBasicPreview::ZoomIn);
+	connect(main, &OBSBasic::PreviewZoomOut, this,
+		&OBSBasicPreview::ZoomOut);
+	connect(main, &OBSBasic::PreviewResetZoom, this,
+		&OBSBasicPreview::ResetZoom);
 }
 
 vec2 OBSBasicPreview::GetMouseEventPos(QMouseEvent *event)
@@ -2330,6 +2335,11 @@ void OBSBasicPreview::SetScalingLevel(int32_t newScalingLevelVal)
 		pow(ZOOM_SENSITIVITY, float(newScalingLevelVal));
 	scalingLevel = newScalingLevelVal;
 	SetScalingAmount(newScalingAmountVal);
+
+	if (newScalingLevelVal == -MAX_SCALING_LEVEL)
+		emit ZoomIsMinimum();
+	else if (newScalingLevelVal == MAX_SCALING_LEVEL)
+		emit ZoomIsMaximum();
 }
 
 void OBSBasicPreview::SetScalingAmount(float newScalingAmountVal)
@@ -2773,4 +2783,23 @@ void OBSBasicPreview::UpdateYScrollBar(float cy)
 
 	QSignalBlocker sig(main->ui->previewYScrollBar);
 	main->ui->previewYScrollBar->setValue(int(-scrollingOffset.y));
+}
+
+void OBSBasicPreview::ResetZoom()
+{
+	SetScalingLevel(0);
+	ResetScrollingOffset();
+	emit DisplayResized();
+}
+
+void OBSBasicPreview::ZoomOut()
+{
+	SetScalingLevel(scalingLevel - 1);
+	emit DisplayResized();
+}
+
+void OBSBasicPreview::ZoomIn()
+{
+	SetScalingLevel(scalingLevel + 1);
+	emit DisplayResized();
 }
