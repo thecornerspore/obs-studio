@@ -305,9 +305,10 @@ bool properties_update_config(OBSAVCapture *capture, obs_properties_t *propertie
             [NSArray arrayWithObjects:aspectSort, pixelBandwidthSort, bppSort, nil];
         for (AVCaptureDeviceFormat *format in [device.formats sortedArrayUsingDescriptors:sortArray]) {
             NSString *enumeratedFormatString = format.obsPropertyListDescription;
+            NSString *internalRepresentation = format.obsPropertyListInternalRepresentation;
             obs_property_list_add_string(prop_format, enumeratedFormatString.UTF8String,
-                                         enumeratedFormatString.UTF8String);
-            if ([selectedFormatString isEqualToString:enumeratedFormatString]) {
+                                         internalRepresentation.UTF8String);
+            if ([selectedFormatString isEqualToString:internalRepresentation]) {
                 for (AVFrameRateRange *range in format.videoSupportedFrameRateRanges) {
                     struct media_frames_per_second min_fps = {
                         .numerator = (uint32_t) clamp_Uint(range.maxFrameDuration.timescale, 0, UINT32_MAX),

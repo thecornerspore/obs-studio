@@ -20,4 +20,7 @@
 /// Lazily computed property containing a general localized description of the format, suitable for use in picking a format in the OBS source properties window.
 @property (nonatomic, strong) NSString *obsPropertyListDescription;
 
+/// Lazily computed property containing the string value used by OBS to represent and uniquely identify the format by its dimensions, supported frame rate ranges, color space and [four character code](https://developer.apple.com/documentation/coremedia/1489255-cmformatdescriptiongetmediasubty?language=objc).
+@property (nonatomic, strong) NSString *obsPropertyListInternalRepresentation;
+
 @end

@@ -429,7 +429,7 @@
 
     if (![selectedFormatNSString isEqualToString:@""]) {
         for (AVCaptureDeviceFormat *formatCandidate in [self.deviceInput.device.formats reverseObjectEnumerator]) {
-            if ([selectedFormatNSString isEqualToString:formatCandidate.obsPropertyListDescription]) {
+            if ([selectedFormatNSString isEqualToString:formatCandidate.obsPropertyListInternalRepresentation]) {
                 CMFormatDescriptionRef formatDescription = formatCandidate.formatDescription;
                 FourCharCode formatFourCC = CMFormatDescriptionGetMediaSubType(formatDescription);
                 format = formatCandidate;
