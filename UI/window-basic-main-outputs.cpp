@@ -587,6 +587,8 @@ void SimpleOutput::LoadStreamingPreset_Lossy(const char *encoderId)
 	if (!videoStreaming)
 		throw "Failed to create video streaming encoder (simple output)";
 	obs_encoder_release(videoStreaming);
+
+	CreateSimulcastEncoders(encoderId);
 }
 
 /* mistakes have been made to lead us to this. */
@@ -895,9 +897,14 @@ void SimpleOutput::Update()
 	default:
 		obs_encoder_set_preferred_video_format(videoStreaming,
 						       VIDEO_FORMAT_NV12);
+		for (auto enc : simulcastEncoders)
+			obs_encoder_set_preferred_video_format(
+				enc, VIDEO_FORMAT_NV12);
 	}
 
 	obs_encoder_update(videoStreaming, videoSettings);
+	SimulcastEncodersUpdate(videoSettings, videoBitrate);
+
 	obs_encoder_update(audioStreaming, audioSettings);
 	obs_encoder_update(audioArchive, audioSettings);
 }
@@ -1209,6 +1216,9 @@ SimpleOutput::SetupStreaming(obs_service_t *service,
 		}
 
 		obs_output_set_video_encoder(streamOutput, videoStreaming);
+		for (size_t i = 0; i < simulcastEncoders.size(); i++)
+			obs_output_set_video_encoder2(
+				streamOutput, simulcastEncoders[i], i + 1);
 		obs_output_set_audio_encoder(streamOutput, audioStreaming, 0);
 		obs_output_set_service(streamOutput, service);
 		return true;
@@ -1752,6 +1762,8 @@ AdvancedOutput::AdvancedOutput(OBSBasic *main_) : BasicOutputHandler(main_)
 		      "(advanced output)";
 	obs_encoder_release(videoStreaming);
 
+	CreateSimulcastEncoders(streamEncoder);
+
 	const char *rate_control = obs_data_get_string(
 		useStreamEncoder ? streamEncSettings : recordEncSettings,
 		"rate_control");
@@ -1872,6 +1884,8 @@ void AdvancedOutput::UpdateStreamSettings()
 	}
 
 	obs_encoder_update(videoStreaming, settings);
+	SimulcastEncodersUpdate(settings,
+				obs_data_get_int(settings, "bitrate"));
 }
 
 inline void AdvancedOutput::UpdateRecordingSettings()
@@ -2356,6 +2370,9 @@ AdvancedOutput::SetupStreaming(obs_service_t *service,
 		}
 
 		obs_output_set_video_encoder(streamOutput, videoStreaming);
+		for (size_t i = 0; i < simulcastEncoders.size(); i++)
+			obs_output_set_video_encoder2(
+				streamOutput, simulcastEncoders[i], i + 1);
 		obs_output_set_audio_encoder(streamOutput, streamAudioEnc, 0);
 
 		if (!is_multitrack_output) {
@@ -2904,4 +2921,60 @@ BasicOutputHandler *CreateSimpleOutputHandler(OBSBasic *main)
 BasicOutputHandler *CreateAdvancedOutputHandler(OBSBasic *main)
 {
 	return new AdvancedOutput(main);
+}
+
+void BasicOutputHandler::CreateSimulcastEncoders(const char *encoderId)
+{
+	int rescaleFilter =
+		config_get_int(main->Config(), "AdvOut", "RescaleFilter");
+	if (rescaleFilter == OBS_SCALE_DISABLE) {
+		rescaleFilter = OBS_SCALE_BICUBIC;
+	}
+
+	std::string encoder_name = "simulcast_0";
+	auto simulcastTotalLayers = config_get_int(main->Config(), "Stream1",
+						   "SimulcastTotalLayers");
+	auto widthStep =
+		video_output_get_width(obs_get_video()) / simulcastTotalLayers;
+	auto heightStep =
+		video_output_get_height(obs_get_video()) / simulcastTotalLayers;
+
+	for (auto i = simulcastTotalLayers - 1; i > 0; i--) {
+		uint32_t width = widthStep * i;
+		width -= width % 2;
+
+		uint32_t height = heightStep * i;
+		height -= height % 2;
+
+		encoder_name[encoder_name.size() - 1] = to_string(i).at(0);
+		auto simulcast_encoder = obs_video_encoder_create(
+			encoderId, encoder_name.c_str(), nullptr, nullptr);
+
+		if (simulcast_encoder) {
+			obs_encoder_set_video(simulcast_encoder,
+					      obs_get_video());
+			obs_encoder_set_scaled_size(simulcast_encoder, width,
+						    height);
+			obs_encoder_set_gpu_scale_type(
+				simulcast_encoder,
+				(obs_scale_type)rescaleFilter);
+			simulcastEncoders.push_back(simulcast_encoder);
+			obs_encoder_release(simulcast_encoder);
+		} else {
+			blog(LOG_WARNING,
+			     "Failed to create video streaming simulcast encoders (BasicOutputHandler)");
+		}
+	}
+}
+
+void BasicOutputHandler::SimulcastEncodersUpdate(obs_data_t *videoSettings,
+						 int videoBitrate)
+{
+	auto bitrateStep =
+		videoBitrate / static_cast<int>(simulcastEncoders.size() + 1);
+	for (auto &simulcastEncoder : simulcastEncoders) {
+		videoBitrate -= bitrateStep;
+		obs_data_set_int(videoSettings, "bitrate", videoBitrate);
+		obs_encoder_update(simulcastEncoder, videoSettings);
+	}
 }
