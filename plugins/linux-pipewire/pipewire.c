@@ -804,8 +804,9 @@ static void process_video_sync(obs_pipewire_stream *obs_pw_stream)
 		obs_pw_stream->texture = gs_texture_create_from_dmabuf(
 			obs_pw_stream->format.info.raw.size.width,
 			obs_pw_stream->format.info.raw.size.height,
-			obs_pw_video_format.drm_format, GS_BGRX, planes, fds,
-			strides, offsets, use_modifiers ? modifiers : NULL);
+			obs_pw_video_format.drm_format,
+			obs_pw_video_format.gs_format, planes, fds, strides,
+			offsets, use_modifiers ? modifiers : NULL);
 
 		if (obs_pw_stream->texture == NULL) {
 			remove_modifier_from_format(
@@ -1355,8 +1356,21 @@ void obs_pipewire_stream_video_render(obs_pipewire_stream *obs_pw_stream,
 	if (!obs_pw_stream->texture)
 		return;
 
+	effect = obs_get_base_effect(OBS_EFFECT_OPAQUE);
+	gs_technique_t *tech =
+		gs_effect_get_technique(effect, "DrawSrgbDecompress");
+	gs_technique_begin(tech);
+	gs_technique_begin_pass(tech, 0);
+
+	const bool linear_srgb = gs_get_linear_srgb();
+	const bool previous = gs_framebuffer_srgb_enabled();
+	gs_enable_framebuffer_srgb(linear_srgb);
+
 	image = gs_effect_get_param_by_name(effect, "image");
-	gs_effect_set_texture(image, obs_pw_stream->texture);
+	if (linear_srgb)
+		gs_effect_set_texture_srgb(image, obs_pw_stream->texture);
+	else
+		gs_effect_set_texture(image, obs_pw_stream->texture);
 
 	rotated = push_rotation(obs_pw_stream);
 
@@ -1396,7 +1410,12 @@ void obs_pipewire_stream_video_render(obs_pipewire_stream *obs_pw_stream,
 		gs_matrix_push();
 		gs_matrix_translate3f(cursor_x, cursor_y, 0.0f);
 
-		gs_effect_set_texture(image, obs_pw_stream->cursor.texture);
+		if (linear_srgb)
+			gs_effect_set_texture(image,
+					      obs_pw_stream->cursor.texture);
+		else
+			gs_effect_set_texture_srgb(
+				image, obs_pw_stream->cursor.texture);
 		gs_draw_sprite(obs_pw_stream->texture, 0,
 			       obs_pw_stream->cursor.width,
 			       obs_pw_stream->cursor.height);
@@ -1405,6 +1424,11 @@ void obs_pipewire_stream_video_render(obs_pipewire_stream *obs_pw_stream,
 	}
 
 	gs_blend_state_pop();
+
+	gs_enable_framebuffer_srgb(previous);
+
+	gs_technique_end_pass(tech);
+	gs_technique_end(tech);
 }
 
 void obs_pipewire_stream_set_cursor_visible(obs_pipewire_stream *obs_pw_stream,
